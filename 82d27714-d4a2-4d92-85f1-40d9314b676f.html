@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Card Match — Credit Card Recommendation Engine</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --ink: #1F1B16;
+    --cream: #FBF5EA;
+    --cream-2: #F2E9D8;
+    --navy: #2C3E50;
+    --navy-light: #3E5670;
+    --green: #2E6B4F;
+    --green-bg: #E4EFE8;
+    --amber: #B97D17;
+    --amber-bg: #FBF0DC;
+    --red: #B5562B;
+    --red-bg: #F5E3D8;
+    --line: #DDD1B8;
+    --muted: #7A6F5C;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--cream);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 900px; margin: 0 auto; padding: 28px 20px 60px; }
+
+  header { margin-bottom: 22px; }
+
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--navy); margin-bottom: 8px; font-weight: 600;
+  }
+
+  h1 {
+    font-family: 'Fraunces', serif; font-weight: 700; font-size: 32px;
+    line-height: 1.08; margin: 0 0 10px; letter-spacing: -0.01em;
+  }
+
+  .sub { font-size: 14.5px; color: var(--muted); max-width: 60ch; line-height: 1.55; margin: 0; }
+
+  /* ---- Form panel ---- */
+  .form-panel {
+    background: #fff; border: 1.5px solid var(--ink); border-radius: 10px;
+    padding: 24px 24px 22px; margin: 24px 0 28px;
+  }
+
+  .form-section { margin-bottom: 22px; }
+  .form-section:last-child { margin-bottom: 0; }
+
+  .section-label {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 10px; font-weight: 600;
+  }
+
+  .field-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+  .field-row:last-child { margin-bottom: 0; }
+
+  .field { flex: 1; min-width: 140px; }
+  .field label {
+    display: block; font-size: 12px; font-weight: 600; color: var(--ink); margin-bottom: 5px;
+  }
+  .field input[type="number"] {
+    width: 100%; padding: 9px 10px; border: 1.5px solid var(--line); border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace; font-size: 14px; background: var(--cream-2);
+    color: var(--ink); outline: none;
+  }
+  .field input[type="number"]:focus { border-color: var(--navy); }
+
+  .spend-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px;
+  }
+  .spend-field label { display: flex; align-items: center; gap: 5px; }
+  .spend-field .icon { font-size: 13px; }
+
+  .priority-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .priority-chip {
+    font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600;
+    background: var(--cream-2); border: 1.5px solid var(--line); color: var(--ink);
+    padding: 8px 14px; border-radius: 18px; cursor: pointer; transition: all 0.12s ease;
+  }
+  .priority-chip:hover { border-color: var(--navy); }
+  .priority-chip.selected { background: var(--navy); border-color: var(--navy); color: #fff; }
+
+  .city-toggle { display: flex; gap: 8px; }
+  .city-opt {
+    font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600;
+    background: var(--cream-2); border: 1.5px solid var(--line); color: var(--ink);
+    padding: 7px 14px; border-radius: 16px; cursor: pointer;
+  }
+  .city-opt.selected { background: var(--navy); border-color: var(--navy); color: #fff; }
+
+  .find-btn {
+    width: 100%; margin-top: 4px; padding: 13px; border-radius: 8px; border: none;
+    background: var(--navy); color: #fff; font-family: 'Inter', sans-serif;
+    font-weight: 700; font-size: 14.5px; cursor: pointer; transition: background 0.12s ease;
+  }
+  .find-btn:hover { background: var(--navy-light); }
+
+  /* ---- Results ---- */
+  .results-section { display: none; }
+  .results-section.show { display: block; }
+
+  .results-header {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 16px; flex-wrap: wrap; gap: 8px;
+  }
+  .results-count { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted); }
+
+  .methodology-note {
+    font-size: 11.5px; color: var(--muted); background: var(--cream-2);
+    border: 1px dashed var(--line); border-radius: 6px; padding: 10px 14px; margin-bottom: 18px;
+    line-height: 1.5;
+  }
+
+  .card-result {
+    background: #fff; border: 1px solid var(--line); border-radius: 10px;
+    padding: 18px 20px; margin-bottom: 14px; position: relative;
+  }
+  .card-result.rank-1 { border: 2px solid var(--navy); box-shadow: 0 2px 10px rgba(44,62,80,0.08); }
+
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; margin-bottom: 10px; }
+
+  .rank-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700;
+    color: var(--navy); margin-bottom: 4px;
+  }
+  .rank-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px; background: var(--navy); color: #fff;
+    border-radius: 50%; font-size: 10.5px;
+  }
+
+  .card-name { font-family: 'Fraunces', serif; font-weight: 600; font-size: 19px; line-height: 1.2; }
+  .card-bank { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  .value-tag { text-align: right; flex-shrink: 0; }
+  .value-amount { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 22px; color: var(--green); line-height: 1; }
+  .value-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); margin-top: 3px; }
+
+  .confidence-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 600;
+    padding: 3px 9px; border-radius: 10px; margin-bottom: 10px;
+  }
+  .confidence-badge.high { background: var(--green-bg); color: var(--green); }
+  .confidence-badge.medium { background: var(--amber-bg); color: var(--amber); }
+  .confidence-badge.low { background: var(--red-bg); color: var(--red); }
+
+  .confidence-caveat {
+    font-size: 12px; color: var(--red); background: var(--red-bg);
+    border-left: 3px solid var(--red); padding: 8px 12px; border-radius: 4px; margin-bottom: 12px;
+    line-height: 1.5;
+  }
+
+  .fee-row {
+    display: flex; gap: 16px; flex-wrap: wrap; font-size: 12.5px; margin-bottom: 12px;
+    padding-bottom: 12px; border-bottom: 1px dashed var(--line);
+  }
+  .fee-item { color: var(--muted); }
+  .fee-item strong { color: var(--ink); }
+  .fee-waived { color: var(--green); font-weight: 600; }
+
+  .breakdown-toggle {
+    font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: var(--navy);
+    background: none; border: none; cursor: pointer; padding: 0; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 4px;
+  }
+
+  .breakdown-table { display: none; margin-bottom: 12px; }
+  .breakdown-table.show { display: block; }
+  .breakdown-row {
+    display: flex; justify-content: space-between; font-size: 12.5px;
+    padding: 5px 0; border-bottom: 1px solid var(--cream-2);
+  }
+  .breakdown-row .cat-name { color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .breakdown-row .cat-name.is-priority { color: var(--navy); font-weight: 600; }
+  .breakdown-row .cat-value { font-family: 'JetBrains Mono', monospace; }
+  .breakdown-note { font-size: 11px; color: var(--muted); font-style: italic; margin-left: 14px; }
+
+  .lounge-line, .redemption-line {
+    font-size: 12.5px; color: var(--muted); margin: 4px 0; line-height: 1.5;
+  }
+  .lounge-line strong, .redemption-line strong { color: var(--ink); }
+
+  .sources-line {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted);
+    opacity: 0.7; margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--line);
+  }
+
+  /* ineligible section */
+  .ineligible-section { margin-top: 28px; }
+  .ineligible-header {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 10px; font-weight: 600;
+  }
+  .ineligible-card {
+    background: var(--cream-2); border: 1px solid var(--line); border-radius: 8px;
+    padding: 12px 16px; margin-bottom: 8px; font-size: 13px;
+  }
+  .ineligible-card .name { font-weight: 600; }
+  .ineligible-card .reason { color: var(--red); font-size: 12px; margin-top: 2px; }
+
+  .snapshot-note {
+    margin-top: 28px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted);
+    background: var(--cream-2); border: 1px dashed var(--line); padding: 10px 14px; border-radius: 4px;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 540px) {
+    h1 { font-size: 26px; }
+    .card-top { flex-direction: column; }
+    .value-tag { text-align: left; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Prototype — Card Match</div>
+    <h1>Tell us your profile.<br>We'll rank cards by real value.</h1>
+    <p class="sub">Enter your age, income, and spending pattern. We'll filter out cards you can't get approved for, then rank the rest by estimated annual value — rewards earned minus the fee you'd actually pay.</p>
+  </header>
+
+  <div class="form-panel">
+    <div class="form-section">
+      <div class="section-label">Your profile</div>
+      <div class="field-row">
+        <div class="field">
+          <label>Age</label>
+          <input type="number" id="age" value="28" min="18" max="100">
+        </div>
+        <div class="field">
+          <label>Monthly income (₹)</label>
+          <input type="number" id="income" value="65000" min="0" step="5000">
+        </div>
+        <div class="field">
+          <label>City tier</label>
+          <div class="city-toggle">
+            <button class="city-opt selected" data-tier="tier1">Tier 1</button>
+            <button class="city-opt" data-tier="tier2">Tier 2</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-label">Monthly spend by category (₹)</div>
+      <div class="spend-grid">
+        <div class="field spend-field">
+          <label><span class="icon">🍽️</span> Dining</label>
+          <input type="number" id="spend-dining" value="6000" min="0" step="500">
+        </div>
+        <div class="field spend-field">
+          <label><span class="icon">✈️</span> Travel</label>
+          <input type="number" id="spend-travel" value="3000" min="0" step="500">
+        </div>
+        <div class="field spend-field">
+          <label><span class="icon">🛍️</span> Shopping</label>
+          <input type="number" id="spend-shopping" value="6000" min="0" step="500">
+        </div>
+        <div class="field spend-field">
+          <label><span class="icon">⛽</span> Fuel</label>
+          <input type="number" id="spend-fuel" value="3000" min="0" step="500">
+        </div>
+        <div class="field spend-field">
+          <label><span class="icon">💳</span> Other</label>
+          <input type="number" id="spend-other" value="5000" min="0" step="500">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-label">What matters most to you?</div>
+      <div class="priority-chips" id="priorityChips"></div>
+    </div>
+
+    <button class="find-btn" id="findBtn">Find my best cards</button>
+  </div>
+
+  <div class="results-section" id="resultsSection">
+    <div class="results-header">
+      <div class="results-count" id="resultsCount"></div>
+    </div>
+    <div class="methodology-note">
+      <strong>How "estimated annual value" is calculated:</strong> reward earnings across your 5 spend categories (applying each card's actual rates and monthly caps × 12) minus the annual fee you'd actually pay after any spend-based waiver. Your chosen priority category counts 1.5× toward ranking, but the ₹ value shown is the real unweighted total. Point-based cards use each issuer's own stated redemption rate (statement credit / standard catalogue) — not optimistic airline-transfer values — so real-world results can be higher if you redeem strategically.
+    </div>
+    <div id="cardResults"></div>
+    <div class="ineligible-section" id="ineligibleSection" style="display:none;">
+      <div class="ineligible-header">Not eligible for your profile</div>
+      <div id="ineligibleList"></div>
+    </div>
+    <div class="snapshot-note" id="snapshotNote"></div>
+  </div>
+
+</div>
+
+<script>
+// Credit Card Recommendation Dataset — researched from official bank sources, June 2026
+// All fee/reward/eligibility figures sourced from bank websites and corroborated aggregator
+// coverage as of the dates noted. Reward valuations for point-based cards use the card's
+// own stated redemption rate (e.g. statement credit / SmartBuy) — NOT optimistic transfer-partner
+// valuations — to stay conservative. This is a snapshot, not live data; verify before applying.
+
+const CARDS = [
+  {
+    id: "amazon-pay-icici",
+    name: "Amazon Pay ICICI Credit Card",
+    bank: "ICICI Bank",
+    feeTier: "entry",
+    annualFee: 0,
+    feeWaiverSpend: 0, // already free, no waiver needed
+    minAge: 18, maxAge: 70,
+    minMonthlyIncome: 15000, // not strictly published (invite-only via Amazon); conservative low estimate
+    incomeConfidence: "approximate", // flagged: ICICI doesn't publish a hard number; card is largely invite-led
+    rewards: {
+      dining: { rate: 0.01, capMonthly: null, note: "1% base rate; no dining-specific accelerator" },
+      travel: { rate: 0.01, capMonthly: null },
+      shopping: { rate: 0.05, capMonthly: null, note: "5% on Amazon.in for Prime members (3% non-Prime); 2% at 100+ Amazon Pay partners" },
+      fuel: { rate: 0.01, capMonthly: 400 / 0.01 * 0.01, note: "1% fuel surcharge waiver, not cashback" },
+      other: { rate: 0.01, capMonthly: null }
+    },
+    lounge: { domestic: 0, international: 0, note: "No lounge access" },
+    welcomeBenefit: 2500,
+    redemptionType: "auto-credit to Amazon Pay balance, no haircut",
+    sourceConfidence: "high",
+    sources: ["icici.bank.in/personal-banking/cards/credit-card/amazon-pay-credit-card", "amazon.in (Amazon Pay ICICI card terms)"]
+  },
+  {
+    id: "axis-ace",
+    name: "Axis Bank ACE Credit Card",
+    bank: "Axis Bank",
+    feeTier: "entry",
+    annualFee: 499,
+    feeWaiverSpend: 200000,
+    minAge: 18, maxAge: 70,
+    minMonthlyIncome: 15000, // entry card, low/no strict published threshold; conservative estimate
+    incomeConfidence: "approximate",
+    rewards: {
+      dining: { rate: 0.04, capMonthly: 500, note: "4% on Swiggy/Zomato (combined cap w/ utility 5% category, ₹500/month total)" },
+      travel: { rate: 0.015, capMonthly: null },
+      shopping: { rate: 0.015, capMonthly: null },
+      fuel: { rate: 0, capMonthly: null, note: "No cashback on fuel; 1% surcharge waiver only" },
+      other: { rate: 0.015, capMonthly: null, note: "Plus 5% on utility bills via GPay only, shares ₹500/month cap with dining" }
+    },
+    lounge: { domestic: 4, international: 0, note: "4 domestic visits/year, gated on ₹50,000 spend in trailing 3 months" },
+    welcomeBenefit: 0,
+    redemptionType: "automatic cashback credit, no point conversion",
+    sourceConfidence: "high",
+    sources: ["paisabazaar.com (Axis ACE)", "axisbank.com (ACE card page)", "axisbank.com (ACE T&C PDF)"]
+  },
+  {
+    id: "hdfc-swiggy",
+    name: "Swiggy HDFC Bank Credit Card",
+    bank: "HDFC Bank",
+    feeTier: "entry",
+    annualFee: 500,
+    feeWaiverSpend: 200000,
+    minAge: 21, maxAge: 60,
+    minMonthlyIncome: 15000,
+    incomeConfidence: "high",
+    rewards: {
+      dining: { rate: 0.10, capMonthly: 1500, note: "10% on Swiggy (Food/Instamart/Dineout), min txn ₹249, capped ₹1,500/month" },
+      travel: { rate: 0.01, capMonthly: null },
+      shopping: { rate: 0.05, capMonthly: 1500, note: "5% on select online partners (Amazon, Flipkart, Myntra etc.)" },
+      fuel: { rate: 0, capMonthly: null, note: "No fuel cashback" },
+      other: { rate: 0.01, capMonthly: 500 }
+    },
+    lounge: { domestic: 0, international: 0, note: "No lounge access; Mastercard World golf perks instead" },
+    welcomeBenefit: 1199, // 3-month Swiggy One membership value
+    redemptionType: "automatic statement credit cashback",
+    sourceConfidence: "high",
+    sources: ["paisabazaar.com (Swiggy HDFC)", "hdfc.bank.in (Swiggy card page + eligibility)", "swiggy.com (card page)"]
+  },
+  {
+    id: "sbi-simplyclick",
+    name: "SBI SimplyCLICK Credit Card",
+    bank: "SBI Card",
+    feeTier: "entry",
+    annualFee: 499,
+    feeWaiverSpend: 100000,
+    minAge: 21, maxAge: 70,
+    minMonthlyIncome: 20000,
+    incomeConfidence: "high",
+    rewards: {
+      dining: { rate: 0.0125, capMonthly: null, note: "1 RP/₹100 offline = ~0.25% effective; online dining apps may fall under 5X (~1.25%) if categorized as online" },
+      travel: { rate: 0.0125, capMonthly: null, note: "5X (~1.25%) general online incl. some travel partners; 10X (~2.5%) on Cleartrip/Yatra specifically" },
+      shopping: { rate: 0.025, capMonthly: null, note: "10X points (~2.5%) on Amazon/BookMyShow/etc partner brands" },
+      fuel: { rate: 0, capMonthly: null, note: "No reward points on fuel; surcharge waiver only" },
+      other: { rate: 0.0025, capMonthly: null, note: "1 RP/₹100 offline = 0.25% effective at ₹0.25/point redemption" }
+    },
+    lounge: { domestic: 0, international: 0, note: "No lounge access" },
+    welcomeBenefit: 500,
+    redemptionType: "reward points, ₹0.25/point on standard redemption",
+    sourceConfidence: "high",
+    sources: ["paisabazaar.com (SimplyCLICK)", "sbicard.com (SimplyCLICK page)", "cardinsider.com (SimplyCLICK review)"]
+  },
+  {
+    id: "sbi-cashback",
+    name: "SBI Cashback Credit Card",
+    bank: "SBI Card",
+    feeTier: "entry",
+    annualFee: 999,
+    feeWaiverSpend: 200000,
+    minAge: 21, maxAge: 70,
+    minMonthlyIncome: 20000, // not explicitly published in sources gathered; aligned to SimplyCLICK tier as conservative estimate
+    incomeConfidence: "approximate",
+    rewards: {
+      dining: { rate: 0.05, capMonthly: 2000, note: "5% if ordered online (food delivery apps); shares ₹2,000/month online cap" },
+      travel: { rate: 0.05, capMonthly: 2000, note: "5% if booked online; shares online cap" },
+      shopping: { rate: 0.05, capMonthly: 2000, note: "5% online, no merchant restriction; capped ₹2,000/month" },
+      fuel: { rate: 0, capMonthly: null, note: "Excluded from cashback; surcharge waiver only" },
+      other: { rate: 0.01, capMonthly: 2000, note: "1% offline, capped ₹2,000/month separately" }
+    },
+    lounge: { domestic: 0, international: 0, note: "No lounge access" },
+    welcomeBenefit: 0,
+    redemptionType: "automatic cashback credit, no point conversion",
+    sourceConfidence: "high",
+    sources: ["cardmaven.in (SBI Cashback review)", "cardinsider.com (SBI Cashback)", "paisabazaar.com (SBI Cashback)"]
+  },
+  {
+    id: "hdfc-millennia",
+    name: "HDFC Millennia Credit Card",
+    bank: "HDFC Bank",
+    feeTier: "entry",
+    annualFee: 1000,
+    feeWaiverSpend: 100000,
+    minAge: 21, maxAge: 40,
+    minMonthlyIncome: 35000,
+    incomeConfidence: "high",
+    rewards: {
+      dining: { rate: 0.05, capMonthly: 2000, note: "5% on Swiggy/Zomato (2 of the 10 partner brands); shared ₹2,000/month CashPoints cap across all 10 brands" },
+      travel: { rate: 0.01, capMonthly: null },
+      shopping: { rate: 0.05, capMonthly: 2000, note: "5% on Amazon, Flipkart, Myntra, Tata CLiQ, etc. (10 brands); shared monthly cap" },
+      fuel: { rate: 0, capMonthly: null, note: "No cashback; 1% surcharge waiver only, capped ₹250/cycle" },
+      other: { rate: 0.01, capMonthly: null }
+    },
+    lounge: { domestic: 1, international: 0, note: "1 visit/quarter only if ₹1,00,000 spent in that quarter (or ₹1,000 voucher instead)" },
+    welcomeBenefit: 1000,
+    redemptionType: "CashPoints, ₹1/point via statement credit (best rate); ₹0.30/point via SmartBuy",
+    sourceConfidence: "high",
+    sources: ["paisabazaar.com (Millennia)", "hdfc.bank.in (Millennia + eligibility)", "1finance.co.in (Millennia review)", "magnify.club (Millennia review)"]
+  },
+  {
+    id: "hdfc-regalia-gold",
+    name: "HDFC Regalia Gold Credit Card",
+    bank: "HDFC Bank",
+    feeTier: "mid",
+    annualFee: 2500,
+    feeWaiverSpend: 400000,
+    minAge: 21, maxAge: 60,
+    minMonthlyIncome: 150000,
+    incomeConfidence: "high",
+    rewards: {
+      dining: { rate: 0.0125, capMonthly: null, note: "Base 1.25% (post-May 2026 revision); plus up to 10% extra via Swiggy Dineout (Good Food Trail), not a points rate" },
+      travel: { rate: 0.0125, capMonthly: null, note: "Base rate; higher via SmartBuy bookings" },
+      shopping: { rate: 0.0125, capMonthly: null },
+      fuel: { rate: 0, capMonthly: null, note: "No reward points on fuel" },
+      other: { rate: 0.0125, capMonthly: null, note: "5 points per ₹200 spent, ~₹0.65/point on Gold Catalogue redemption = 1.625% there; using conservative 1.25% (₹0.50/point flights/hotels) as base case" }
+    },
+    lounge: { domestic: 12, international: 6, note: "Domestic NOW gated at ₹60,000 quarterly spend from July 2026 (was unconditional); international via Priority Pass" },
+    welcomeBenefit: 2500,
+    redemptionType: "reward points, ₹0.20 (statement credit) to ₹0.65 (Gold Catalogue) per point depending on redemption",
+    sourceConfidence: "high",
+    sources: ["paisabazaar.com (Regalia Gold)", "hdfc.bank.in (Regalia Gold + fees)", "cardmaven.in (Regalia Gold review)", "cardexpert.in (2026 revision)", "business-standard.com (lounge gating update)"]
+  },
+  {
+    id: "hdfc-diners-black",
+    name: "HDFC Diners Club Black Credit Card",
+    bank: "HDFC Bank",
+    feeTier: "premium",
+    annualFee: 10000,
+    feeWaiverSpend: 500000,
+    minAge: 21, maxAge: 65,
+    minMonthlyIncome: 175000,
+    incomeConfidence: "high",
+    rewards: {
+      dining: { rate: 0.0333, capMonthly: null, note: "Base 3.33%; plus 25% extra off via Swiggy Dineout; 2X points on weekend dining" },
+      travel: { rate: 0.0333, capMonthly: null, note: "Up to 10X (33%) via SmartBuy for flights/hotels, capped 7,500 RP/month" },
+      shopping: { rate: 0.0333, capMonthly: null },
+      fuel: { rate: 0, capMonthly: null, note: "No reward points on fuel" },
+      other: { rate: 0.0333, capMonthly: null, note: "5 points per ₹150 spent at ₹1/point (1:1) on flight/hotel = 3.33% base" }
+    },
+    lounge: { domestic: 999, international: 999, note: "Unlimited (1,000+ lounges) for primary and add-on cardholders" },
+    welcomeBenefit: 10000, // bonus reward points worth ~fee amount
+    redemptionType: "reward points, ₹1/point (1:1) on flights/hotels — among the best redemption rates in India",
+    sourceConfidence: "high",
+    sources: ["paisabazaar.com (Diners Club Black)", "hdfc.bank.in (Diners Black + eligibility)", "cardmaven.in (DCB Metal review)", "bankkaro.com (Diners Black)"]
+  },
+  {
+    id: "axis-magnus",
+    name: "Axis Magnus Credit Card",
+    bank: "Axis Bank",
+    feeTier: "premium",
+    annualFee: 12500,
+    feeWaiverSpend: 2500000,
+    minAge: 18, maxAge: 70,
+    minMonthlyIncome: 200000, // ₹24L/year ≈ ₹2L/month
+    incomeConfidence: "high",
+    rewards: {
+      dining: { rate: 0.012, capMonthly: null, note: "Base ~1.2% effective post-devaluation (0.2 ₹/point); 30% extra off via EazyDiner Dining Delights separately" },
+      travel: { rate: 0.012, capMonthly: null, note: "5X EDGE points via Travel Edge portal; effective ~1.2% base redemption" },
+      shopping: { rate: 0.012, capMonthly: null },
+      fuel: { rate: 0, capMonthly: null, note: "No reward points on fuel; surcharge waiver capped ₹400" },
+      other: { rate: 0.012, capMonthly: null, note: "12 EDGE pts/₹200 up to ₹1.5L/month, 35 pts/₹200 above — at ₹0.20/point voucher value ≈ 1.2-3.5% depending on spend tier; using conservative base" }
+    },
+    lounge: { domestic: 999, international: 999, note: "Unlimited domestic (gated on ₹50,000 spend in trailing 3 months) + unlimited international via Priority Pass" },
+    welcomeBenefit: 12500,
+    redemptionType: "EDGE reward points, ₹0.20/point on vouchers; better value (up to 24%) via airline/hotel transfer partners at 5:4 ratio",
+    sourceConfidence: "high",
+    sources: ["paisabazaar.com (Magnus)", "axisbank.com (Magnus card page)", "mymoneymantra.com (Magnus)", "cardinsider.com (Magnus review)", "bankbazaar.com (Magnus)"]
+  },
+  {
+    id: "idfc-first-wealth",
+    name: "IDFC FIRST Wealth Credit Card",
+    bank: "IDFC FIRST Bank",
+    feeTier: "premium",
+    annualFee: 0,
+    feeWaiverSpend: 0,
+    minAge: 21, maxAge: 65,
+    minMonthlyIncome: 300000, // ₹36L/year ≈ ₹3L/month
+    incomeConfidence: "high",
+    rewards: {
+      dining: { rate: 0.05, capMonthly: null, note: "10X reward points (10 pts/₹200) at ₹0.25/point = 1.25% effective — note: some sources cite higher headline %, using conservative point-value math" },
+      travel: { rate: 0.05, capMonthly: null, note: "10X dining/travel/international category; plus 20% bonus on hotel & 10% on flight bookings via app, capped 8,000 bonus points" },
+      shopping: { rate: 0.0075, capMonthly: null, note: "Base 3 pts/₹150 (up to ₹20k/month) = 0.5%; 10 pts/₹150 (~1.67%) beyond ₹20k/month" },
+      fuel: { rate: 0.005, capMonthly: 400, note: "Earns points on fuel unlike most cards (rare); plus surcharge waiver" },
+      other: { rate: 0.0075, capMonthly: null }
+    },
+    lounge: { domestic: 4, international: 4, note: "Revised April 2026: 1 domestic + 1 international per quarter, gated on ₹20,000 spend in current month for next month's access" },
+    welcomeBenefit: 500,
+    redemptionType: "reward points, ₹0.25/point standard; ₹99+GST redemption fee applies",
+    sourceConfidence: "high",
+    sources: ["paisabazaar.com (IDFC Wealth)", "idfcfirst.bank.in (Wealth card page + reward T&C)", "1finance.co.in (IDFC Wealth review)"]
+  },
+  {
+    id: "amex-platinum",
+    name: "American Express Platinum Card",
+    bank: "American Express",
+    feeTier: "premium",
+    annualFee: 5000, // note: multiple Amex "Platinum" products exist (Travel vs Charge); using the ₹5,000-tier consumer Platinum per dining research
+    feeWaiverSpend: 0,
+    minAge: 21, maxAge: 65,
+    minMonthlyIncome: 100000, // approximate — Amex doesn't publish a hard figure; premium-tier estimate
+    incomeConfidence: "approximate",
+    rewards: {
+      dining: { rate: 0.25, capMonthly: 5000, note: "25% off (up to ₹5,000/txn, ₹10,000/month) via Zomato/District app — direct discount, not points" },
+      travel: { rate: 0.02, capMonthly: null, note: "1 MR point per ₹40 spent at ~₹0.40-0.50/point effective ≈ 1-1.25%" },
+      shopping: { rate: 0.02, capMonthly: null },
+      fuel: { rate: 0, capMonthly: null },
+      other: { rate: 0.02, capMonthly: null, note: "1 MR point/₹40 spent, redemption value varies 25-50 paise/point depending on category" }
+    },
+    lounge: { domestic: 12, international: 0, note: "12 complimentary domestic lounge visits/year; international via separate programs" },
+    welcomeBenefit: 11000, // bonus MR points
+    redemptionType: "Membership Rewards points, variable value 25-50 paise/point",
+    sourceConfidence: "medium",
+    sources: ["americanexpress.com/in/benefits/the-platinum-card", "desidime.com (Amex card roundup — cross-referenced only)"]
+  },
+  {
+    id: "sbi-aurum",
+    name: "SBI Card Aurum",
+    bank: "SBI Card",
+    feeTier: "premium",
+    annualFee: 12499,
+    feeWaiverSpend: 1000000,
+    minAge: 21, maxAge: 70,
+    minMonthlyIncome: 150000, // approximate — exact published figure not confirmed in research; premium-tier estimate
+    incomeConfidence: "approximate",
+    rewards: {
+      dining: { rate: 0.20, capMonthly: null, note: "Up to 25% off via bundled EazyDiner ED Privilege Plus membership (up to 50% at premium partners Taj/Oberoi/ITC/Hyatt) — discount, not points; using conservative 20%" },
+      travel: { rate: 0.06, capMonthly: null, note: "6 EaseMyTrip points/₹100 ≈ ₹1 each per some sources — treating cautiously as ~3% effective, not fully verified" },
+      shopping: { rate: 0.02, capMonthly: null, note: "Not independently verified in this research pass — directional estimate only" },
+      fuel: { rate: 0, capMonthly: null },
+      other: { rate: 0.02, capMonthly: null }
+    },
+    lounge: { domestic: 999, international: 999, note: "Unlimited via premium tier (per aggregator sources; not independently confirmed on sbicard.com in this research pass)" },
+    welcomeBenefit: 12499,
+    redemptionType: "mixed: direct discounts (dining) + points (other categories)",
+    sourceConfidence: "low", // explicitly flagged — see note below
+    sources: ["eazydiner.com/destinations (SBI Aurum)", "creditsmart.in (aggregator — lower confidence, see caveat)"],
+    confidenceCaveat: "SBI Aurum figures are the least verified in this dataset — primarily sourced from aggregator content rather than sbicard.com directly. Travel/shopping rates are directional estimates. Verify all figures directly with SBI Card before relying on this card's ranking."
+  }
+];
+
+// ---- Scoring engine ----
+
+// Compute effective annual reward value for one category on one card
+function categoryAnnualValue(rewardConfig, monthlySpendInCategory) {
+  if (!rewardConfig || monthlySpendInCategory <= 0) return 0;
+  const monthlyValue = monthlySpendInCategory * rewardConfig.rate;
+  const cappedMonthly = rewardConfig.capMonthly ? Math.min(monthlyValue, rewardConfig.capMonthly) : monthlyValue;
+  return Math.round(cappedMonthly * 12);
+}
+
+// Full scoring for one card given a user profile
+// profile = { age, monthlyIncome, monthlySpend: {dining, travel, shopping, fuel, other}, priority }
+function scoreCard(card, profile) {
+  // Eligibility gate
+  const eligible = profile.age >= card.minAge && profile.age <= card.maxAge &&
+                    profile.monthlyIncome >= card.minMonthlyIncome;
+
+  if (!eligible) {
+    return {
+      card, eligible: false,
+      reasons: [
+        profile.age < card.minAge || profile.age > card.maxAge ? `Age must be ${card.minAge}-${card.maxAge}` : null,
+        profile.monthlyIncome < card.minMonthlyIncome ? `Needs monthly income ≥ ₹${card.minMonthlyIncome.toLocaleString('en-IN')}` : null
+      ].filter(Boolean)
+    };
+  }
+
+  const categories = ['dining', 'travel', 'shopping', 'fuel', 'other'];
+  const categoryBreakdown = {};
+  let totalRewardValue = 0;
+  let weightedRewardValue = 0;
+
+  categories.forEach(cat => {
+    const spend = profile.monthlySpend[cat] || 0;
+    const value = categoryAnnualValue(card.rewards[cat], spend);
+    categoryBreakdown[cat] = value;
+    totalRewardValue += value;
+    const weight = (cat === profile.priority) ? 1.5 : 1.0;
+    weightedRewardValue += value * weight;
+  });
+
+  const annualSpend = Object.values(profile.monthlySpend).reduce((a, b) => a + (b || 0), 0) * 12;
+  const feeWaived = card.feeWaiverSpend > 0 && annualSpend >= card.feeWaiverSpend;
+  const effectiveFee = feeWaived ? 0 : card.annualFee;
+
+  const netAnnualValue = totalRewardValue - effectiveFee;
+  const score = weightedRewardValue - effectiveFee;
+
+  return {
+    card, eligible: true,
+    categoryBreakdown, totalRewardValue, weightedRewardValue,
+    effectiveFee, feeWaived, netAnnualValue, score
+  };
+}
+
+function rankCards(allCards, profile) {
+  const results = allCards.map(c => scoreCard(c, profile));
+  const eligible = results.filter(r => r.eligible).sort((a, b) => b.score - a.score);
+  const ineligible = results.filter(r => !r.eligible);
+  return { eligible, ineligible };
+}
+
+</script>
+<script>
+  let selectedPriority = 'dining';
+  let selectedTier = 'tier1';
+
+  const PRIORITY_OPTIONS = [
+    { id: 'dining', label: '🍽️ Dining', },
+    { id: 'travel', label: '✈️ Travel / Lounge' },
+    { id: 'shopping', label: '🛍️ Cashback / Shopping' },
+    { id: 'low-fee', label: '💰 Low annual fee' },
+  ];
+
+  const CATEGORY_ICONS = { dining: '🍽️', travel: '✈️', shopping: '🛍️', fuel: '⛽', other: '💳' };
+  const CATEGORY_LABELS = { dining: 'Dining', travel: 'Travel', shopping: 'Shopping', fuel: 'Fuel', other: 'Other spends' };
+
+  function init() {
+    renderPriorityChips();
+    document.querySelectorAll('.city-opt').forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectedTier = btn.dataset.tier;
+        document.querySelectorAll('.city-opt').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+      });
+    });
+    document.getElementById('findBtn').addEventListener('click', runRecommendation);
+  }
+
+  function renderPriorityChips() {
+    const el = document.getElementById('priorityChips');
+    el.innerHTML = PRIORITY_OPTIONS.map(p =>
+      `<button class="priority-chip ${p.id === selectedPriority ? 'selected' : ''}" data-priority="${p.id}">${p.label}</button>`
+    ).join('');
+    el.querySelectorAll('.priority-chip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectedPriority = btn.dataset.priority;
+        renderPriorityChips();
+      });
+    });
+  }
+
+  function getProfile() {
+    return {
+      age: parseInt(document.getElementById('age').value) || 0,
+      monthlyIncome: parseFloat(document.getElementById('income').value) || 0,
+      monthlySpend: {
+        dining: parseFloat(document.getElementById('spend-dining').value) || 0,
+        travel: parseFloat(document.getElementById('spend-travel').value) || 0,
+        shopping: parseFloat(document.getElementById('spend-shopping').value) || 0,
+        fuel: parseFloat(document.getElementById('spend-fuel').value) || 0,
+        other: parseFloat(document.getElementById('spend-other').value) || 0,
+      },
+      // 'low-fee' doesn't map to a reward category, so no priority boost applies — ranking
+      // falls back to pure net annual value, which naturally favors low/waived-fee cards.
+      priority: selectedPriority === 'low-fee' ? '__none__' : selectedPriority,
+      cityTier: selectedTier
+    };
+  }
+
+  function confidenceLabel(level) {
+    if (level === 'high') return { dots: '●●●', text: 'High confidence', cls: 'high' };
+    if (level === 'medium') return { dots: '●●○', text: 'Medium confidence', cls: 'medium' };
+    return { dots: '●○○', text: 'Low confidence — verify before applying', cls: 'low' };
+  }
+
+  function runRecommendation() {
+    const profile = getProfile();
+    const { eligible, ineligible } = rankCards(CARDS, profile);
+
+    document.getElementById('resultsSection').classList.add('show');
+    document.getElementById('resultsCount').textContent =
+      `${eligible.length} card${eligible.length !== 1 ? 's' : ''} you're eligible for, ranked by estimated annual value`;
+
+    const resultsEl = document.getElementById('cardResults');
+    resultsEl.innerHTML = eligible.map((r, idx) => {
+      const card = r.card;
+      const conf = confidenceLabel(card.sourceConfidence);
+      const isTop = idx === 0;
+
+      const breakdownRows = ['dining','travel','shopping','fuel','other'].map(cat => {
+        const val = r.categoryBreakdown[cat];
+        const isPriority = cat === profile.priority;
+        const note = card.rewards[cat] && card.rewards[cat].note ? card.rewards[cat].note : null;
+        return `
+          <div class="breakdown-row">
+            <span class="cat-name ${isPriority ? 'is-priority' : ''}">${CATEGORY_ICONS[cat]} ${CATEGORY_LABELS[cat]}${isPriority ? ' (priority)' : ''}</span>
+            <span class="cat-value">₹${val.toLocaleString('en-IN')}/yr</span>
+          </div>
+          ${note ? `<div class="breakdown-note">${note}</div>` : ''}
+        `;
+      }).join('');
+
+      return `
+        <div class="card-result ${isTop ? 'rank-1' : ''}">
+          <div class="confidence-badge ${conf.cls}">${conf.dots} ${conf.text}</div>
+          ${card.confidenceCaveat ? `<div class="confidence-caveat">⚠️ ${card.confidenceCaveat}</div>` : ''}
+          <div class="card-top">
+            <div>
+              <div class="rank-pill"><span class="rank-num">${idx + 1}</span>${isTop ? 'TOP MATCH' : 'RANKED #' + (idx + 1)}</div>
+              <div class="card-name">${card.name}</div>
+              <div class="card-bank">${card.bank} · ${card.feeTier} tier</div>
+            </div>
+            <div class="value-tag">
+              <div class="value-amount">₹${r.netAnnualValue.toLocaleString('en-IN')}</div>
+              <div class="value-label">est. net annual value</div>
+            </div>
+          </div>
+
+          <div class="fee-row">
+            <span class="fee-item">Annual fee: <strong>₹${card.annualFee.toLocaleString('en-IN')}</strong></span>
+            <span class="fee-item">${r.feeWaived ? `<span class="fee-waived">✓ Waived</span> (spend ≥ ₹${card.feeWaiverSpend.toLocaleString('en-IN')}/yr)` : card.feeWaiverSpend > 0 ? `Waived above ₹${card.feeWaiverSpend.toLocaleString('en-IN')}/yr spend` : 'No waiver needed — already free'}</span>
+            <span class="fee-item">Total rewards: <strong>₹${r.totalRewardValue.toLocaleString('en-IN')}/yr</strong></span>
+          </div>
+
+          <button class="breakdown-toggle" onclick="this.nextElementSibling.classList.toggle('show'); this.textContent = this.nextElementSibling.classList.contains('show') ? '▼ Hide the math' : '▶ Show the math by category';">▶ Show the math by category</button>
+          <div class="breakdown-table">
+            ${breakdownRows}
+          </div>
+
+          <div class="lounge-line"><strong>Lounge access:</strong> ${card.lounge.domestic > 50 ? 'Unlimited domestic' : card.lounge.domestic + ' domestic visits/year'}${card.lounge.international > 0 ? (card.lounge.international > 50 ? ' + unlimited international' : ' + ' + card.lounge.international + ' international/year') : ''}. ${card.lounge.note}</div>
+          <div class="redemption-line"><strong>Redemption:</strong> ${card.redemptionType}</div>
+
+          <div class="sources-line">Sources: ${card.sources.join(' · ')}</div>
+        </div>
+      `;
+    }).join('');
+
+    const ineligibleSection = document.getElementById('ineligibleSection');
+    const ineligibleList = document.getElementById('ineligibleList');
+    if (ineligible.length > 0) {
+      ineligibleSection.style.display = 'block';
+      ineligibleList.innerHTML = ineligible.map(r => `
+        <div class="ineligible-card">
+          <div class="name">${r.card.name}</div>
+          <div class="reason">${r.reasons.join(' · ')}</div>
+        </div>
+      `).join('');
+    } else {
+      ineligibleSection.style.display = 'none';
+    }
+
+    document.getElementById('snapshotNote').textContent =
+      `📋 Card data snapshot as of June 2026, researched from official bank sources. Fees, reward rates, and eligibility criteria change frequently (several cards in this dataset were revised earlier in 2026) — always verify current terms on the issuer's website before applying. This tool gives directional estimates, not financial advice.`;
+
+    document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  init();
+</script>
+</body>
+</html>
